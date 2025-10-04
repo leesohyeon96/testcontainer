@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  postgres-prod:
+    image: postgres:15
+    container_name: postgres-prod
+    environment:
+      POSTGRES_USER: prod_user
+      POSTGRES_PASSWORD: prod_pass
+      POSTGRES_DB: prod_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./prod_data:/var/lib/postgresql/data
