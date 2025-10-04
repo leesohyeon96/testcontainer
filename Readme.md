@@ -66,13 +66,3 @@ chmod +x schema_dump.sh
 테스트 실행 시 dumpSchema Gradle task가 자동 실행되도록 설정되어 있습니다.
 
 init.sql은 자동으로 덮어써지므로 git 관리 대상에서 제외(.gitignore)하는 것을 권장합니다.
-
-✅ 예시 실행 로그
-> Task :dumpSchema
-Dumping schema from local PostgreSQL...
-
-> Task :test
-Starting Testcontainers PostgreSQL database...
-Applying init.sql schema...
-Running integration tests...
-All tests passed 🎉
