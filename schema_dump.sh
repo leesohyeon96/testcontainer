@@ -39,13 +39,16 @@ if [ $? -eq 0 ]; then
   # \restrict와 \unrestrict 제거
   sed -i '' '/\\restrict/d' $OUTPUT_FILE
   sed -i '' '/\\unrestrict/d' $OUTPUT_FILE
-  
+
   # \script 명령어 제거 (있다면)
   sed -i '' '/\\script/d' $OUTPUT_FILE
-  
+
   # 기타 불필요한 명령어들 제거
   sed -i '' '/^-- Dumped from database version/d' $OUTPUT_FILE
   sed -i '' '/^-- Dumped by pg_dump version/d' $OUTPUT_FILE
+
+  # PG17+ 전용 설정 제거 (postgres:15 컨테이너 호환성)
+  sed -i '' '/^SET transaction_timeout/d' $OUTPUT_FILE
   
   # 파일 크기 확인
   if [ -s $OUTPUT_FILE ]; then

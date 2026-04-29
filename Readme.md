@@ -25,17 +25,18 @@
 src/
 ├── main/
 │   ├── java/com/shl/testcontainer/
-│   │   ├── entity/User.java          # JPA 엔티티
-│   │   ├── repository/UserRepository.java  # Spring Data JPA 리포지토리
-│   │   └── dao/UserDao.java          # MyBatis 매퍼
+│   │   ├── entity/User.java                          # JPA 엔티티
+│   │   ├── repository/UserRepository.java            # Spring Data JPA 리포지토리
+│   │   └── dao/UserDao.java                          # MyBatis 매퍼
 │   └── resources/
 │       └── application.properties
 └── test/
     ├── java/com/shl/testcontainer/
-    │   └── TestcontainerApplicationTests.java  # 통합 테스트
+    │   ├── TestcontainerApplicationTests.java        # 방식 1: @DynamicPropertySource
+    │   └── TestcontainerServiceConnectionTests.java  # 방식 2: @ServiceConnection
     └── resources/
         ├── application-test.yml
-        └── init.sql                  # 운영 DB 스키마 덤프 (자동 생성됨)
+        └── init.sql                                  # 운영 DB 스키마 덤프 (자동 생성됨)
 
 docker-compose.yml    # 로컬 운영 DB 컨테이너
 schema_dump.sh        # 운영 DB 스키마 추출 스크립트
@@ -79,7 +80,7 @@ chmod +x schema_dump.sh
 - 운영 DB에서 스키마만(`--schema-only`) 추출하여 `src/test/resources/init.sql`에 저장합니다.
 - 데이터는 포함되지 않습니다.
 
-> **참고**: `init.sql`은 매 실행 시 덮어쓰이므로 `.gitignore`에 추가하는 것을 권장합니다.
+> **참고**: `init.sql`은 매 실행 시 덮어쓰이는 자동 생성 파일입니다. `.gitignore`에 이미 등록되어 있습니다.
 
 ### 4. 테스트 실행
 
@@ -113,17 +114,50 @@ JPA / MyBatis 통합 테스트 실행
 컨테이너 자동 종료
 ```
 
-## 테스트 동작 원리
+## 컨테이너 연결 방식 비교
 
-`TestcontainerApplicationTests`에서 `@DynamicPropertySource`를 사용해 Testcontainers가 띄운 컨테이너의 JDBC URL / 계정 정보를 Spring Context에 동적으로 주입합니다.
+이 프로젝트에서는 Testcontainers와 Spring을 연결하는 두 가지 방식을 모두 구현해두었습니다.
+
+### 방식 1. `@DynamicPropertySource` — `TestcontainerApplicationTests`
+
+컨테이너에서 JDBC URL / 계정 정보를 직접 꺼내 Spring 프로퍼티에 수동으로 등록합니다.
 
 ```java
+@Container
+static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+        .withInitScript("init.sql");
+
 @DynamicPropertySource
 static void configureProperties(DynamicPropertyRegistry registry) {
     registry.add("spring.datasource.url", postgres::getJdbcUrl);
     registry.add("spring.datasource.username", postgres::getUsername);
     registry.add("spring.datasource.password", postgres::getPassword);
+    registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
 }
 ```
 
-별도의 `application-test.yml` 수정 없이 컨테이너 정보가 자동 연결됩니다.
+- Spring Boot 2.x부터 사용 가능
+- 어떤 컨테이너든 프로퍼티 이름을 자유롭게 지정할 수 있어 유연함
+- Redis, Kafka 등 여러 컨테이너를 커스텀 프로퍼티로 연결할 때 적합
+
+### 방식 2. `@ServiceConnection` — `TestcontainerServiceConnectionTests`
+
+`@ServiceConnection` 어노테이션 하나로 Spring이 컨테이너 정보를 자동으로 읽어 주입합니다.
+
+```java
+@Container
+@ServiceConnection
+static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+        .withInitScript("init.sql");
+```
+
+- Spring Boot 3.1+, `spring-boot-testcontainers` 의존성 필요
+- `@DynamicPropertySource` 메서드가 불필요해져 코드가 간결함
+- PostgreSQL, Redis, Kafka 등 Spring이 공식 지원하는 컨테이너에서 사용 가능
+
+| | `@DynamicPropertySource` | `@ServiceConnection` |
+|---|---|---|
+| 지원 버전 | Spring Boot 2.x+ | Spring Boot 3.1+ |
+| 코드량 | 많음 | 적음 |
+| 유연성 | 높음 (커스텀 프로퍼티 가능) | 지원 컨테이너 한정 |
+| 추가 의존성 | 불필요 | `spring-boot-testcontainers` 필요 |

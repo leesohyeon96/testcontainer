@@ -20,6 +20,8 @@ class TestcontainerApplicationTests {
 	static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
 			.withInitScript("init.sql");
 
+	// 컨테이너에서 동적으로 생성된 url/username/password를 Spring 프로퍼티에 직접 등록
+	// 빠뜨리면 application.properties 값을 그대로 쓰거나 에러 발생
 	@DynamicPropertySource
 	static void configureProperties(DynamicPropertyRegistry registry) {
 		registry.add("spring.datasource.url", postgres::getJdbcUrl);
