@@ -65,6 +65,8 @@ docker compose up -d
 `docker-compose.yml`에 정의된 PostgreSQL 컨테이너가 로컬 운영 DB 역할을 합니다.  
 접속 정보 및 DB명은 `docker-compose.yml` 파일을 직접 확인하세요.
 
+> `docker/init.sql`이 컨테이너 최초 실행 시 자동으로 적용되어 테이블이 생성됩니다.
+
 ### 2. 스크립트 실행 권한 부여 (최초 1회)
 
 ```bash
